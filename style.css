@@ -104,36 +104,21 @@ h1 {
     margin-bottom: 16px;
 }
 
-/* Sub-category navigation */
-.sub-category-tabs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-bottom: 16px;
-}
-
-.sub-tab {
-    padding: 6px 12px;
-    border-radius: 16px;
-    border: 1px solid #ccc;
-    background: white;
+/* Sub-category progress indicator */
+.sub-progress {
+    color: #aaa;
     font-size: 0.8rem;
-    cursor: pointer;
-    transition: all 0.2s;
 }
 
-.sub-tab:hover {
-    border-color: #1a6b4a;
-}
-
-.sub-tab.active {
-    background: #1a6b4a;
-    color: white;
-    border-color: #1a6b4a;
-}
-
-.sub-tab .check {
-    margin-left: 4px;
+/* Complaint banner on results */
+.complaint-banner {
+    text-align: center;
+    padding: 10px 16px;
+    background: #e8f5ed;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 0.95rem;
+    color: #2c3e50;
 }
 
 /* Option chips */

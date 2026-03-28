@@ -1,8 +1,10 @@
 // App state
-let currentStep = 0;
+// step -1 = intro (main complaint), 0-4 = CLAMS categories
+let currentStep = -1;
 let currentSubCat = 0;
-const selections = {};   // { "concomitants": ["Nausea", "Anxiety", ...], ... }
-const customEntries = {}; // { "concomitants": ["my custom entry", ...], ... }
+let mainComplaint = '';
+const selections = {};
+const customEntries = {};
 
 // Initialize selections for each category
 CLAMS_DATA.forEach(cat => {
@@ -10,42 +12,64 @@ CLAMS_DATA.forEach(cat => {
     customEntries[cat.key] = [];
 });
 
+// Count total sub-category screens across all CLAMS steps
+function getTotalScreens() {
+    let total = 1; // intro screen
+    CLAMS_DATA.forEach(cat => { total += cat.subCategories.length; });
+    return total;
+}
+
+function getCurrentScreenIndex() {
+    if (currentStep === -1) return 0;
+    let idx = 1; // after intro
+    for (let i = 0; i < currentStep; i++) {
+        idx += CLAMS_DATA[i].subCategories.length;
+    }
+    idx += currentSubCat;
+    return idx;
+}
+
 // Render the current step
 function render() {
-    const cat = CLAMS_DATA[currentStep];
-    const sub = cat.subCategories[currentSubCat];
+    const area = document.getElementById('question-area');
 
     // Update progress
-    const pct = (currentStep / CLAMS_DATA.length) * 100;
+    const total = getTotalScreens();
+    const current = getCurrentScreenIndex();
+    const pct = (current / total) * 100;
     document.getElementById('progress-fill').style.width = pct + '%';
     document.querySelectorAll('#progress-labels span').forEach((el, i) => {
-        el.className = i < currentStep ? 'done' : i === currentStep ? 'active' : '';
+        if (currentStep === -1) {
+            el.className = '';
+        } else {
+            el.className = i < currentStep ? 'done' : i === currentStep ? 'active' : '';
+        }
     });
 
     // Update nav
-    document.getElementById('btn-back').disabled = (currentStep === 0 && currentSubCat === 0);
-    document.getElementById('btn-next').textContent =
-        currentStep === CLAMS_DATA.length - 1 && currentSubCat === cat.subCategories.length - 1
-            ? 'See Results' : 'Next';
+    document.getElementById('btn-back').disabled = (currentStep === -1);
 
-    // Build question area
-    const area = document.getElementById('question-area');
+    const isLastScreen = currentStep === CLAMS_DATA.length - 1 &&
+        currentSubCat === CLAMS_DATA[currentStep].subCategories.length - 1;
+    document.getElementById('btn-next').textContent = isLastScreen ? 'See Results' : 'Next';
+
+    // Intro screen
+    if (currentStep === -1) {
+        renderIntro(area);
+        return;
+    }
+
+    // CLAMS category screen
+    const cat = CLAMS_DATA[currentStep];
+    const sub = cat.subCategories[currentSubCat];
+    const subTotal = cat.subCategories.length;
+
     let html = '';
 
-    // Header
+    // Header with sub-category progress
     html += `<div class="step-label">${cat.letter} — ${cat.label}</div>`;
-    html += `<div class="step-question">${cat.question}</div>`;
-    html += `<div class="step-hint">${cat.hint}</div>`;
-
-    // Sub-category tabs
-    html += '<div class="sub-category-tabs">';
-    cat.subCategories.forEach((sc, i) => {
-        const hasSelections = sc.options.some(o => selections[cat.key].includes(o));
-        const cls = i === currentSubCat ? 'sub-tab active' : 'sub-tab';
-        const check = hasSelections ? '<span class="check">✓</span>' : '';
-        html += `<button class="${cls}" onclick="switchSubCat(${i})">${sc.label}${check}</button>`;
-    });
-    html += '</div>';
+    html += `<div class="step-question">${sub.label}</div>`;
+    html += `<div class="step-hint">${cat.hint} <span class="sub-progress">(${currentSubCat + 1} of ${subTotal})</span></div>`;
 
     // Options
     html += '<div class="options-grid">';
@@ -84,8 +108,57 @@ function render() {
     area.innerHTML = html;
 }
 
+function renderIntro(area) {
+    let html = '';
+    html += '<div class="step-label">Getting Started</div>';
+    html += '<div class="step-question">What is your main complaint?</div>';
+    html += '<div class="step-hint">Describe what\'s bothering you in a few words</div>';
+
+    // Common complaint chips
+    const commonComplaints = [
+        "Headache", "Cold / flu", "Digestive upset", "Joint pain",
+        "Skin irritation", "Anxiety / stress", "Injury / bruising",
+        "Sore throat", "Fatigue / exhaustion", "Muscle pain",
+        "Menstrual complaints", "Sleep problems"
+    ];
+
+    html += '<div class="options-grid">';
+    commonComplaints.forEach(c => {
+        const selected = mainComplaint === c ? 'selected' : '';
+        const tick = selected ? '✓' : '';
+        html += `<div class="option-chip ${selected}" onclick="selectComplaint('${escapeStr(c)}')">
+            <span class="indicator">${tick}</span>
+            <span>${c}</span>
+        </div>`;
+    });
+    html += '</div>';
+
+    // Custom input for complaint
+    html += `<div class="custom-input-area">
+        <input type="text" id="complaint-input" placeholder="Or type your complaint here..."
+               value="${escapeAttr(mainComplaint && !commonComplaints.includes(mainComplaint) ? mainComplaint : '')}"
+               oninput="handleComplaintInput(event)"
+               onkeydown="if(event.key==='Enter' && this.value.trim()) goNext()">
+    </div>`;
+
+    area.innerHTML = html;
+}
+
 function escapeStr(s) {
     return s.replace(/'/g, "\\'");
+}
+
+function escapeAttr(s) {
+    return s.replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
+function selectComplaint(c) {
+    mainComplaint = mainComplaint === c ? '' : c;
+    render();
+}
+
+function handleComplaintInput(e) {
+    mainComplaint = e.target.value.trim();
 }
 
 function toggleOption(opt) {
@@ -96,11 +169,6 @@ function toggleOption(opt) {
     } else {
         selections[cat.key].push(opt);
     }
-    render();
-}
-
-function switchSubCat(i) {
-    currentSubCat = i;
     render();
 }
 
@@ -127,16 +195,30 @@ function removeCustom(i) {
 }
 
 function goBack() {
+    if (currentStep === -1) return;
+
     if (currentSubCat > 0) {
         currentSubCat--;
     } else if (currentStep > 0) {
         currentStep--;
         currentSubCat = CLAMS_DATA[currentStep].subCategories.length - 1;
+    } else {
+        // Go back to intro
+        currentStep = -1;
+        currentSubCat = 0;
     }
     render();
 }
 
 function goNext() {
+    // From intro
+    if (currentStep === -1) {
+        currentStep = 0;
+        currentSubCat = 0;
+        render();
+        return;
+    }
+
     const cat = CLAMS_DATA[currentStep];
     if (currentSubCat < cat.subCategories.length - 1) {
         currentSubCat++;
@@ -180,7 +262,6 @@ function scoreRemedies() {
         };
     });
 
-    // Sort by score descending
     scores.sort((a, b) => b.score - a.score);
     return scores;
 }
@@ -197,7 +278,14 @@ function showResults() {
     const scored = scoreRemedies().filter(s => s.score > 0);
     const top = scored.slice(0, 5);
 
-    let html = '<div class="results-title">Suggested Remedies</div>';
+    let html = '';
+
+    // Show main complaint at top
+    if (mainComplaint) {
+        html += `<div class="complaint-banner">Complaint: <strong>${mainComplaint}</strong></div>`;
+    }
+
+    html += '<div class="results-title">Suggested Remedies</div>';
 
     if (top.length === 0) {
         html += '<p style="text-align:center;color:#666;">No strong matches found. Consider consulting a qualified homeopath for a full case assessment.</p>';
@@ -241,8 +329,9 @@ function showResults() {
 }
 
 function restart() {
-    currentStep = 0;
+    currentStep = -1;
     currentSubCat = 0;
+    mainComplaint = '';
     CLAMS_DATA.forEach(cat => {
         selections[cat.key] = [];
         customEntries[cat.key] = [];
