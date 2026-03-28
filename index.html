@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CLAMS Homeopathic Remedy Finder</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>CLAMS Remedy Finder</h1>
+            <p class="subtitle">Answer a few questions to help identify an appropriate homeopathic remedy</p>
+        </header>
+
+        <div id="progress-bar">
+            <div id="progress-fill"></div>
+            <div id="progress-labels">
+                <span data-step="0">C</span>
+                <span data-step="1">L</span>
+                <span data-step="2">A</span>
+                <span data-step="3">M</span>
+                <span data-step="4">S</span>
+            </div>
+        </div>
+
+        <main id="question-area">
+            <!-- Questions rendered here by JS -->
+        </main>
+
+        <div id="nav-buttons">
+            <button id="btn-back" onclick="goBack()" disabled>Back</button>
+            <button id="btn-next" onclick="goNext()">Next</button>
+        </div>
+
+        <div id="results-area" class="hidden">
+            <!-- Results rendered here by JS -->
+        </div>
+    </div>
+
+    <script src="data.js"></script>
+    <script src="remedies.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
